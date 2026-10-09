@@ -1,0 +1,58 @@
+name: TestWatch
+description: Run your TestWatch end-to-end tests from a workflow and fail the job on real bugs.
+author: TestWatch
+branding:
+  icon: check-circle
+  color: green
+inputs:
+  api-key:
+    description: A TestWatch API key (Settings → API keys). Store it as a secret.
+    required: true
+  app:
+    description: The app id (not needed when the key is pinned to one app).
+    required: false
+  environment:
+    description: Environment name or id to run against (default the app's default).
+    required: false
+  environment-url:
+    description: >-
+      A deployed URL; runs against the environment with the same address. On a
+      deployment_status event it defaults to the deployment's environment_url.
+    required: false
+  tags:
+    description: Only tests with these tags (comma separated).
+    required: false
+  tests:
+    description: Only these test ids (comma separated).
+    required: false
+  account:
+    description: Test account id to sign in as.
+    required: false
+  fail-on:
+    description: Verdicts that fail the job — real_bug, needs_review, infra, or "none".
+    required: false
+    default: real_bug,needs_review,infra
+  wait:
+    description: Wait for the final verdict (after heal + triage).
+    required: false
+    default: 'true'
+  timeout:
+    description: How long to wait for the verdict (e.g. 30m).
+    required: false
+    default: 30m
+  junit:
+    description: Write a JUnit XML report to this path.
+    required: false
+  api-url:
+    description: TestWatch API address (only for self-hosted or staging setups).
+    required: false
+outputs:
+  run-id:
+    description: The TestWatch run id.
+  url:
+    description: Link to the run in TestWatch.
+  verdict:
+    description: pass | real_bug | needs_review | infra | timeout
+runs:
+  using: node24
+  main: dist/action.js
