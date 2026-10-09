@@ -29,7 +29,8 @@ jobs:
 | `api-key` | — | Settings → API keys (a repository secret) |
 | `app` | — | App id (optional when the key is pinned to one app) |
 | `environment` | app default | Environment name or id |
-| `environment-url` | the `deployment_status` URL | Picks the environment with this address |
+| `environment-url` | the `deployment_status` URL | A deployed URL: matches an environment's own URL or one of its preview patterns |
+| `url` | — | Run against this preview URL; it must match the environment's preview patterns |
 | `tags`, `tests`, `account` | all | Narrow the run |
 | `fail-on` | `real_bug,needs_review,infra` | `none` never fails |
 | `wait` / `timeout` | `true` / `30m` | |
@@ -41,6 +42,53 @@ The job summary lists the failing tests with links; each one is also an annotati
 Verdicts: **pass** — all passed (flaky passes included) · **real_bug** — the app is broken ·
 **needs_review** — a test failed and needs a person (often the app changed) · **infra** —
 the app or its login wasn't usable.
+
+## Preview deployments
+
+Add your preview hosts as **preview patterns** on the environment (TestWatch → the app →
+Environments, e.g. `*-acme.vercel.app`). A run against a preview URL uses that environment's
+tests and test accounts, stays out of the app's main health numbers, and when a test needs a
+fix on that branch TestWatch proposes a **PR fix**: the job summary and annotations link to it.
+Accept it in TestWatch, then re-run the job.
+
+**Vercel** sends a `deployment_status` event for every deploy, previews included. The deployed
+URL is used automatically and matched to the environment by its preview patterns:
+
+```yaml
+on:
+  deployment_status:
+jobs:
+  e2e:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: testwatch-dev/action@v1
+        with:
+          api-key: ${{ secrets.TESTWATCH_API_KEY }}
+          app: <your app id>
+```
+
+**Netlify** doesn't send `deployment_status` by default. Either add a TestWatch deploy hook
+(the app → CI & deploys) to Netlify's deploy notifications, or pass the preview URL yourself:
+
+```yaml
+on:
+  pull_request:
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      # …wait for the Netlify deploy preview here…
+      - uses: testwatch-dev/action@v1
+        with:
+          api-key: ${{ secrets.TESTWATCH_API_KEY }}
+          app: <your app id>
+          environment: staging
+          url: https://deploy-preview-${{ github.event.number }}--acme.netlify.app
+```
+
+Use `url` or `environment-url`, not both. `url` is the strict one: the run is refused when the
+URL doesn't match the environment's preview patterns.
 
 ## Releasing (maintainers)
 

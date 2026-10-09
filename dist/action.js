@@ -11,9 +11,16 @@ export async function actionArgs(env, readEvent) {
     };
     flag('app', input(env, 'app'));
     flag('env', input(env, 'environment'));
+    // docs/39: an explicit preview URL (must match the environment's preview patterns).
+    const preview = input(env, 'url');
+    flag('url', preview);
     let url = input(env, 'environment-url');
-    // An explicit environment wins; else a deployment_status event names the deployed URL.
-    if (!url && !input(env, 'environment') && env.GITHUB_EVENT_NAME === 'deployment_status') {
+    // An explicit environment or preview URL wins; else a deployment_status event names the
+    // deployed URL (the server matches it to an environment's URL or its preview patterns).
+    if (!url &&
+        !preview &&
+        !input(env, 'environment') &&
+        env.GITHUB_EVENT_NAME === 'deployment_status') {
         const status = ((await readEvent())?.deployment_status ?? {});
         if (status.state !== 'success') {
             return { argv, env, skip: `deployment is "${status.state ?? 'unknown'}", not "success"` };

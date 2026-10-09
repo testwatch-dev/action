@@ -10,7 +10,10 @@ Commands:
 Run options:
   --app <id>              App id (not needed when the key is pinned to one app)
   --env <name|id>         Environment to run against (default: the app's default)
-  --env-url <url>         A deployed URL; picks the environment with the same address
+  --env-url <url>         A deployed URL: matches an environment's own URL or one of its
+                          preview patterns
+  --url <url>             Run against this preview URL (with --env, or the app's default
+                          environment); it must match the environment's preview patterns
   --tag <tag>             Only tests with this tag (repeatable)
   --tags-mode <or|and>    Match any tag (default) or all of them
   --tests <id,id>         Only these test ids
@@ -37,6 +40,15 @@ const csv = (v) => (v ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+function isHttpUrl(u) {
+    try {
+        const p = new URL(u);
+        return (p.protocol === 'http:' || p.protocol === 'https:') && !!p.hostname;
+    }
+    catch {
+        return false;
+    }
+}
 /** argv (without node + script) → a command. Pure. */
 export function parseCommand(argv) {
     let parsed;
@@ -51,6 +63,7 @@ export function parseCommand(argv) {
                 app: { type: 'string' },
                 env: { type: 'string' },
                 'env-url': { type: 'string' },
+                url: { type: 'string' },
                 tag: { type: 'string', multiple: true },
                 'tags-mode': { type: 'string' },
                 tests: { type: 'string' },
@@ -107,11 +120,21 @@ export function parseCommand(argv) {
     if (str('env') && str('env-url')) {
         return { kind: 'error', message: 'Use --env or --env-url, not both' };
     }
+    const url = str('url');
+    if (url && str('env-url')) {
+        return {
+            kind: 'error',
+            message: 'Use --url or --env-url, not both (--url already names the environment with --env)',
+        };
+    }
+    if (url && !isHttpUrl(url))
+        return { kind: 'error', message: '--url: an http(s) URL' };
     const tags = (v.tag ?? []).flatMap((t) => csv(t));
     const options = {
         app: str('app'),
         env: str('env'),
         envUrl: str('env-url'),
+        url,
         tags,
         tagsMode: mode,
         tests: csv(str('tests')),

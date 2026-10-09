@@ -4,8 +4,8 @@ import { detectCi } from './ci-env.js';
 import { ApiError, createClient } from './client.js';
 import { fmtDuration } from './duration.js';
 import { EXIT, exitCodeFor } from './exit.js';
-import { consoleReport, githubAnnotations, markdownSummary, progressLine } from './summary.js';
-export const VERSION = '0.1.0';
+import { consoleReport, githubAnnotations, markdownSummary, progressLine, proposedFixes, } from './summary.js';
+export const VERSION = '0.2.0';
 export const DEFAULT_API_URL = 'https://api.testwatch.dev';
 function explain(e) {
     if (!(e instanceof ApiError))
@@ -42,6 +42,7 @@ export function buildRunBody(o, ctx, source) {
         ...(o.app ? { appId: o.app } : {}),
         ...(o.env ? { environment: o.env } : {}),
         ...(o.envUrl ? { environmentUrl: o.envUrl } : {}),
+        ...(o.url ? { baseUrl: o.url } : {}),
         ...(o.tags.length ? { tags: { tags: o.tags, mode: o.tagsMode } } : {}),
         ...(o.tests.length ? { tests: o.tests } : {}),
         ...(o.account ? { account: o.account } : {}),
@@ -55,7 +56,7 @@ export function buildRunBody(o, ctx, source) {
 }
 /**
  * The idempotency key when none is given. In a detected CI job: the job id + WHAT is being
- * run (app, environment, URL, tags, tests, account) — a matrix leg or a second step that
+ * run (app, environment, URL, preview URL, tags, tests, account) — a matrix leg or a second step that
  * targets something else gets its own run, while a retried POST of the same step maps to the
  * same one. Without a CI: a random key per invocation, so the client's own retries of a lost
  * response can never start a second run.
@@ -70,6 +71,8 @@ export function idempotencyKeyFor(ctx, body) {
         body.tags ?? null,
         body.tests ?? null,
         body.account ?? null,
+        // Appended only when set, so keys of runs without a preview URL stay as they were.
+        ...(body.baseUrl ? [body.baseUrl] : []),
     ]);
     const h = createHash('sha256').update(target).digest('hex').slice(0, 12);
     return `${ctx.idempotencyKey}:${h}`;
@@ -148,6 +151,9 @@ async function run(io, env, o, client, source) {
         }
         if (ctx.stepSummaryPath) {
             await io.appendFile(ctx.stepSummaryPath, markdownSummary(result)).catch(() => undefined);
+        }
+        if (proposedFixes(result).length) {
+            io.out('Accept the PR fix in TestWatch, then re-run this job.');
         }
         await setOutputs(io, ctx, { verdict: result.verdict });
         if (o.json)

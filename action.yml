@@ -16,8 +16,14 @@ inputs:
     required: false
   environment-url:
     description: >-
-      A deployed URL; runs against the environment with the same address. On a
-      deployment_status event it defaults to the deployment's environment_url.
+      A deployed URL; runs against the environment whose own URL or one of whose preview
+      patterns matches it. On a deployment_status event it defaults to the deployment's
+      environment_url.
+    required: false
+  url:
+    description: >-
+      A preview URL to run against (with environment, or the app's default environment).
+      It must match the environment's preview patterns. Don't combine with environment-url.
     required: false
   tags:
     description: Only tests with these tags (comma separated).
