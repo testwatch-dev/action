@@ -1,4 +1,4 @@
-name: TestWatch
+name: TestWatch Playwright E2E
 description: Run your TestWatch end-to-end tests from a workflow and fail the job on real bugs.
 author: TestWatch
 branding:

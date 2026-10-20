@@ -5,7 +5,7 @@ import { ApiError, createClient } from './client.js';
 import { fmtDuration } from './duration.js';
 import { EXIT, exitCodeFor } from './exit.js';
 import { consoleReport, githubAnnotations, markdownSummary, progressLine, proposedFixes, } from './summary.js';
-export const VERSION = '0.2.0';
+export const VERSION = '0.2.1';
 export const DEFAULT_API_URL = 'https://api.testwatch.dev';
 function explain(e) {
     if (!(e instanceof ApiError))
